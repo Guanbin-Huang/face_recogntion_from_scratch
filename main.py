@@ -11,6 +11,38 @@ import sys
 import os
 
 
+class FaceRecognizer:
+        def __init__(self, face_det_weight, feature_extract_weight, save_crop_img_dir, feature_dict, use_milvus):
+            super(FaceRecognizer, self).__init__()
+
+            # initialize the face detector
+            self.detector = Detector.YoLov5(face_det_weight)
+
+            # initialize the face feature extractor
+            self.extractor = Extractor.ArcFace(feature_extract_weight)
+
+            # the dir to save the face
+            self.save_img_dir = save_crop_img_dir
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+            # the dir to save the feature vector
+            self.feature_dict_path = feature_dict
+            self.json_read    = json.load(open(self.feature_dict_path, "r"))
+
+
+        def Register(self, souce, user_name):
+            ...
+
+        def ImageRecognize(self, source):
+            ...
+
+        def VideoRecognize(self, source):
+            ...
+
+        def align(self, M, image):
+            ...
+
+
 if __name__ == "main":
     # ------------------------------------------- arguments ------------------------------------------------
     parser = argparse.ArgumentParser()
@@ -29,7 +61,7 @@ if __name__ == "main":
     # ------------------------------------------- arguments ------------------------------------------------
 
     # start up the face recognition
-    face = FaceRecognition(args.face_det_weight, args.save_crop_dir, args.feature_dict, args.use_milvus)
+    face = FaceRecognizer(args.face_det_weight, args.save_crop_dir, args.feature_dict, args.use_milvus)
 
     # register faces(optional)
     face.Register(args.url, args.user_name)
@@ -39,5 +71,5 @@ if __name__ == "main":
     face.ImageRecognize(args.source)
 
     # from video
-    face.VideoFace(args.source)
+    face.VideoRecognize(args.source)
 
