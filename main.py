@@ -27,7 +27,7 @@ class FaceRecognizer:
 
             # the dir to save the feature vector
             self.feature_dict_path = feature_dict
-            self.json_read    = json.load(open(self.feature_dict_path, "r"))
+            self.feat_dict    = json.load(open(self.feature_dict_path, "r"))
 
 
         def Register(self, source, user_name):
@@ -45,10 +45,10 @@ class FaceRecognizer:
                 feature_list = self.img_to_json_feature(crop_img_list)
 
                 # save the feature with its user name
-                self.json_read[user_name] = feature_list
+                self.feat_dict[user_name] = feature_list
 
                 # save then as json file
-                json.dump(self.json_read, open(self.feature_dict_path, "w")) # dump the read_json into a new place(aka. self.feature_dict_path)
+                json.dump(self.feat_dict, open(self.feature_dict_path, "w")) # dump the read_json into a new place(aka. self.feature_dict_path)
 
         #region ---------------------------------------  some utils -------------------------------------
         def img_to_milvus_feature(self):
@@ -69,7 +69,71 @@ class FaceRecognizer:
         #region -------------------------------------- 3 Major Functionalities ------------------------------------------
 
         def ImageRecognize(self, source):
-            ...
+            image = cv2.imread(source)
+            bboxes = self.detector(image) # 1 images ---> n faces
+
+            if bboxes:
+                for box in bboxes:
+                    x1, y1, x2, y2 = box[0], box[1], box[2], box[3]
+                    M = self.get_align_matrix(box)
+                    aligned_croped_img = self.crop_and_align(M, image.copy())
+                    aligned_croped_img = Image.fromarray(aligned_croped_img)
+                    feature_test = self.extractor(aligned_croped_img)
+
+
+                    #region ----------------------- two methods to get the max_score class------------------------
+                    if self.use_milvus:
+                        ...
+                    else:
+                        cls_list  = []            # a face might be simliar as several faces in the dict
+                        max_cls_scores = []       # for those faces, we have a score to indicate similarity
+
+                        for cls in self.feat_dict:
+                            cls_simi_scores = []  # the current box's similarity scores with the cls-th person's feature vec.
+                            cls_list.append(cls)
+
+                            for feat in self.feat_dict[cls]: # one person has several feature vec
+                                '''
+                                   refer to face_and_feature.jpg
+                                   feat_dict has n persons
+                                   each person has several feature vec
+                                   So, we need two for loop. Outter for loop --> n 
+                            
+                                '''
+                                simi_score = compare(torch.tensor(feature_test), torch.tensor(feat))
+                                cls_simi_scores.append(simi_score)
+
+                            max_cls_scores.append(max(cls_simi_scores)) # simply speaking, each candidate(cls) in the dict shows their best to compare against
+                    #endregion ----------------------- two methods to get the max_score class ------------------------
+
+
+                    #region --------------------------------Thresholding and Visulizing ---------------------------------------------
+                    if max_cls_scores > 0.4:
+                        print(f"similarity:", max(max_cls_scores))
+                        index = np.argmax(max_cls_scores)
+                        pred_cls = cls_list[index]
+
+                        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                        cv2.putText(image, pred_cls, (x1, y1 - 2), 0, 3, [255, 255, 255], thickness = 3, lineType = cv2.LINE_AA)
+                    else:
+                        cv2.imshow("image", image)
+                        cv2.waitKey(0)
+                        cv2.destroyAllWindows()
+                    #endregion --------------------------------Thresholding and Visulizing ---------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         def VideoRecognize(self, source):
             ...
