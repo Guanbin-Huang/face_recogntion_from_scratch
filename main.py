@@ -30,8 +30,43 @@ class FaceRecognizer:
             self.json_read    = json.load(open(self.feature_dict_path, "r"))
 
 
-        def Register(self, souce, user_name):
+        def Register(self, source, user_name):
+            # get the input image from the croped image list
+            crop_img_list = self.crop_img_from_video(source)   # assume the func is really smart such that it detects the and crop the face
+
+            # save the image to a specific path
+            self.save_img_from_video(crop_img_list, user_name) # assume crop_img_list contains several PIL image.
+
+            if self.use_milvus:
+                #self.img_to_milvus_feature
+                ...  # todo
+            else:
+                # get n x 128 features given n x images
+                feature_list = self.img_to_json_feature(crop_img_list)
+
+                # save the feature with its user name
+                self.json_read[user_name] = feature_list
+
+                # save then as json file
+                json.dump(self.json_read, open(self.feature_dict_path, "w")) # dump the read_json into a new place(aka. self.feature_dict_path)
+
+        #region ---------------------------------------  some utils -------------------------------------
+        def img_to_milvus_feature(self):
             ...
+
+        def img_to_json_feature(self):
+            ...
+
+        def crop_img_from_video(self, source):
+            ...
+
+        def save_img_from_video(self, crop_img_list, name):
+            ...
+
+        #endregion ------------------------------------- some utils -------------------------------------
+
+
+        #region -------------------------------------- 3 Major Functionalities ------------------------------------------
 
         def ImageRecognize(self, source):
             ...
@@ -41,6 +76,9 @@ class FaceRecognizer:
 
         def align(self, M, image):
             ...
+        # ------------------------------------------- 3 Major Functionalities ------------------------------------------
+        #endregion
+
 
 
 if __name__ == "main":
