@@ -40,7 +40,7 @@ class FaceRecognizer:
             self.extractor = Extractor.ArcFace(feature_extract_weight)
 
             # the dir to save the face
-            self.save_img_dir = save_crop_img_dir
+            self.save_std_cop_img_dir = save_crop_img_dir
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
             # the dir to save the feature vector
@@ -54,11 +54,56 @@ class FaceRecognizer:
         def img_to_json_feature(self):
             ...
 
-        def crop_img_from_video(self, source):
-            ...
+        def crop_align_img_from_vid(self, source):            # used in Register
+            cap = cv2.VideoCapture(source, cv2.CAP_DSHOW) # https://docs.opencv.org/3.4/d4/d15/group__videoio__flags__base.html#:~:text=%E2%97%86%C2%A0-,VideoCaptureAPIs,-enum%20cv%3A%3AVideoCaptureAPIs
 
-        def save_img_from_video(self, crop_img_list, name):
-            ...
+            counter = 0 # count frame
+            std_crop_img_list = []
+
+            while True: # for loop the frames
+                ret, frame = cap.read()
+                if not ret:
+                    continue
+                counter += 1
+                bboxes = self.detector(frame.copy()) # detector contains drawing. So we use frame.copy to avoid the modification of the raw_img
+
+                for box in bboxes:
+                    if counter % 6 == 0: # crop a frame every 6 frames
+                        x1, y1, x2, y2 = box[0], box[1], box[2], box[3]
+
+                        M = self.get_alignment_matrix(box)
+                        aligned_img = self.align(M, frame.copy())
+
+                        std_crop_img = aligned_img[...,::-1] # we need to imshow, so reverse the channels.
+                        std_crop_img = Image.fromarray(std_crop_img)
+                        std_crop_img_list.append(std_crop_img)
+
+                cv2.putText(frame, "Registering, persons except the user keep away", (10, 10), 0, 5, [0,255,0], thickness = 3, lineType = cv2.LINE_AA)
+                cv2.imshow("1", frame) # no need to show the aligned image because now it's registering time
+
+
+            cap.release()
+            cv2.destroyAllWindows()
+            return std_crop_img_list
+
+
+
+        def save_aligned_img_from_vid(self, std_crop_img_list, name):
+            """
+            save std_crop_img to check for a better debug experience
+            """
+            # create dir for each user name
+            name_dir = os.path.join(self.save_std_cop_img_dir, name) # e.g. /face_recog/.../face_data/ + hgb/
+
+            if not os.path.exists(name_dir) # if hgb dir doesn't exist
+                os.mkdir(name_dir)
+
+            # save the std_crop_img in it
+            for i, img in enumerate(std_crop_img_list):
+                img_path = os.path.join(name_dir, f"{i+1}.jpg")
+                img.save() # PIL image.save api # ref: https://omz-software.com/pythonista/docs/ios/Image.html#:~:text=The%20Image%20Module,-The%20Image%20module
+
+
 
         #endregion ------------------------------------- some utils -------------------------------------
 
@@ -66,10 +111,10 @@ class FaceRecognizer:
 
         def Register(self, source, user_name):
             # get the input image from the croped image list
-            crop_img_list = self.crop_img_from_video(source)   # assume the func is really smart such that it detects the and crop the face
+            crop_img_list = self.crop_align_img_from_vid(source)   # assume the func is really smart such that it detects the and crop the face
 
             # save the image to a specific path
-            self.save_img_from_video(crop_img_list, user_name) # assume crop_img_list contains several PIL image.
+            self.save_aligned_img_from_vid(crop_img_list, user_name) # assume crop_img_list contains several PIL image.
 
             if self.use_milvus:
                 #self.img_to_milvus_feature
@@ -264,7 +309,7 @@ if __name__ == "main":
                         , help= r"save several feature for each person")
     parser.add_argument(r"--save_crop_dir", type = str, default = r"arcface_pytorch\face_data"
                         , help= r"save some pictures for a given person")
-    parser.add_argument("--source", type = str, defulat = 0, help = r"source of the input, video, image, rtsp, webcam etc")
+    parser.add_argument("--source", type = str, defulat = 0, help = r"source of the input, video, image, rtsp, webcam etc") # if it is 0, 0 should be converted into int.
     parser.add_argument("--use_milvus", action="store_true", help="database use milvus")
     parser.add_argument("--milvus", action="store_true", help="milvus open")
     parser.add_argument("--user_name", type=str, help="the name of the person regestering")
