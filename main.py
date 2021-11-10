@@ -10,6 +10,16 @@ import torch.nn.functional as F
 import sys
 import os
 
+"""
+Notes: 
+    We already design the whole framework. It's time to finish each block.
+    The easiest block might be get_alignment_matrix.
+    
+    ref:
+        
+"""
+
+
 
 def compare(face1, face2):
     ...
@@ -185,10 +195,59 @@ class FaceRecognizer:
                 if cv2.waitKey(10) & 0xFF == ord("q"):
                     break
 
-        def get_alignment_matrix(self, M, image):
-            ...
         # ------------------------------------------- 3 Major Functionalities ------------------------------------------
         #endregion
+
+        #region ------------------------------------------- Face alignment -------------------------------------------
+        def align(self, M, image): # todo    details about face alignment will be introduced in the next few days
+            aligned_image = cv2.warpAffine(image, M, dsize=(128,128)) # 128 * 128 are the input size for feature extractor
+            return aligned_image
+
+        def get_alignment_matrix(self, box): #todo
+            # find the mapping from landmarks in box to std_landmarks
+
+            std_landmarks = np.array([ # std landmarks coordinates gain by arcface.
+                 [40.979567061066064, 41.516426774567584],
+                 [88.8882824975239, 40.93974246129967],
+                 [66.18679549114333, 67.77924169228517],
+                 [44.374469330991076, 89.78187673839847],
+                 [86.25706338749815, 90.07465963987703]
+            ], dtype = np.float32) #todo
+
+            landmarks = np.array([
+                 [box[4], box[5]],
+                 [box[6], box[7]],
+                 [box[8], box[9]],
+                 [box[10],box[11]],
+                 [box[12],box[13]],
+            ], dtype = np.float32) #todo
+
+            Matrix = self.__find_mapping_to_std_landmarks__(landmarks, std_landmarks)
+
+            return Matrix
+
+        def __find_mapping_to_std_landmarks__(self, landmarks, std_landmarks): #todo
+            # construct Q matrix, 10 * 4
+            Q = np.zeros((10, 4))
+
+            # construct S matrix 10 * 1
+            S = std_landmarks.reshape(-1, 1)
+
+            for i in range(5): # 5 landmarks # Put the 5 points into the Q matirx
+                x, y = landmarks[i]
+                Q[i * 2 + 0] = x, y,  1, 0
+                Q[i * 2 + 1] = y, -x, 0, 1
+
+            M = (np.linalg.inv(Q.T @ Q) @ Q.T @ S).squeeze()
+
+            matrix = np.array([
+                [M[0],  M[1], M[2]],
+                [-M[1], M[0], M[3]],
+            ])
+
+            return matrix
+        #endregion ---------------------------------------- Face alignment ------------------------------------------
+
 
 
 
