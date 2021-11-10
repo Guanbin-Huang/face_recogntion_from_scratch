@@ -21,8 +21,12 @@ Notes:
 
 
 
-def compare(face1, face2):
-    ...
+def compare(face1, face2): #todo  comments can be added.
+    face1_norm = F.normalize(face1)
+    face2_norm = F.normalize(face2)
+    cos_similarity = torch.matmul(face1_norm, face2_norm)
+    return cos_similarity
+
 
 
 class FaceRecognizer:
