@@ -19,8 +19,6 @@ Notes:
         
 """
 
-
-
 def compare(face1, face2): #todo  comments can be added.
     face1_norm = F.normalize(face1)
     face2_norm = F.normalize(face2)
@@ -48,11 +46,19 @@ class FaceRecognizer:
             self.feat_dict    = json.load(open(self.feature_dict_path, "r"))
 
         #region ---------------------------------------  some utils -------------------------------------
-        def img_to_milvus_feature(self):
+        def register_img_to_milvus_feature(self):
             ...
 
-        def img_to_json_feature(self):
-            ...
+        def register_img_to_json_feature(self, std_crop_img_list):
+            """
+            std_crop_imgs for a person ----> json features for a person
+            """
+            feature_list = []
+            for img in std_crop_img_list: # for each img, we extract the feature of it.
+                feature = self.extractor(img)
+                feature_list.append(feature.tolist())
+
+            return feature_list
 
         def crop_align_img_from_vid(self, source):            # used in Register
             cap = cv2.VideoCapture(source, cv2.CAP_DSHOW) # https://docs.opencv.org/3.4/d4/d15/group__videoio__flags__base.html#:~:text=%E2%97%86%C2%A0-,VideoCaptureAPIs,-enum%20cv%3A%3AVideoCaptureAPIs
@@ -86,8 +92,6 @@ class FaceRecognizer:
             cv2.destroyAllWindows()
             return std_crop_img_list
 
-
-
         def save_aligned_img_from_vid(self, std_crop_img_list, name):
             """
             save std_crop_img to check for a better debug experience
@@ -95,15 +99,13 @@ class FaceRecognizer:
             # create dir for each user name
             name_dir = os.path.join(self.save_std_cop_img_dir, name) # e.g. /face_recog/.../face_data/ + hgb/
 
-            if not os.path.exists(name_dir) # if hgb dir doesn't exist
+            if not os.path.exists(name_dir): # if hgb dir doesn't exist
                 os.mkdir(name_dir)
 
             # save the std_crop_img in it
             for i, img in enumerate(std_crop_img_list):
                 img_path = os.path.join(name_dir, f"{i+1}.jpg")
                 img.save() # PIL image.save api # ref: https://omz-software.com/pythonista/docs/ios/Image.html#:~:text=The%20Image%20Module,-The%20Image%20module
-
-
 
         #endregion ------------------------------------- some utils -------------------------------------
 
@@ -117,11 +119,11 @@ class FaceRecognizer:
             self.save_aligned_img_from_vid(crop_img_list, user_name) # assume crop_img_list contains several PIL image.
 
             if self.use_milvus:
-                #self.img_to_milvus_feature
+                #self.register_img_to_milvus_feature
                 ...  # todo
             else:
                 # get n x 128 features given n x images
-                feature_list = self.img_to_json_feature(crop_img_list)
+                feature_list = self.register_img_to_json_feature(crop_img_list)
 
                 # save the feature with its user name
                 self.feat_dict[user_name] = feature_list
@@ -296,8 +298,6 @@ class FaceRecognizer:
 
             return matrix
         #endregion ---------------------------------------- Face alignment ------------------------------------------
-
-
 
 
 if __name__ == "main":
