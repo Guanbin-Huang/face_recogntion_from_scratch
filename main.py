@@ -26,7 +26,6 @@ def compare(face1, face2): #todo  comments can be added.
     return cos_similarity
 
 
-
 class FaceRecognizer:
         def __init__(self, face_det_weight, feature_extract_weight, save_crop_img_dir, feature_dict, use_milvus):
             super(FaceRecognizer, self).__init__()
