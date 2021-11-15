@@ -1,0 +1,17 @@
+# model
+*.pt
+*.pth
+*.onnx
+
+# temp file
+*.mat
+
+# some file
+*.pyc
+*.o
+*.so
+
+
+# some folder
+Components/Detection/yolov5_face_master/__pycache__
+Components/Detection/yolov5_face_master/runs
